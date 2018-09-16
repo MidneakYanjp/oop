@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <style>
+        body,html{
+            height: 100%;
+        }
+        ul,li {
+            list-style: none;
+        }
+        #inform {
+            text-align: center;
+            color: #9f9f9f;
+            font-size: 18px;
+        }
+        #inform span {
+            color: #ff4a3d;
+        }
+        #earch {
+            text-align: center;
+            font-size: 20px;
+            color: #2963ff;
+        }
+    </style>
+</head>
+<body>
+<ul id="inform">
+    <li>第一层车位数量100，空余车位数量 <span data-num=1>100</span></li>
+    <li>第二层车位数量100，空余车位数量 <span data-num=2>100</span></li>
+    <li>第三层车位数量100，空余车位数量 <span data-num=3>100</span></li>
+    <li>第四层车位数量 20，空余车位数量 <span data-num=4> 20</span></li>
+</ul>
+<p style="text-align: center; color: #5eb4ff">收入 <span id="price">0</span> 元</p>
+<ul id="earch">
+    <li>统计</li>
+</ul>
+<script>
+    // 面向抽象
+    /*看的一道面试题，自己来设计一下————byYanjp
+    * 一个停车场，车辆入场显示信息以及各个层级的空位数量,出场显示
+    * 停车时长，面试题里的停车场车位给定死了是100,我这里做了一个小小的变动
+    * */
+    let priced = document.getElementById('price')
+    let earch = document.getElementById('earch')
+    // 摄像头 属于停车场的，可以识别车辆信息，将数据传给电脑
+    class Camera {
+    	constructor () {
+    		this.computer = new Computer()
+        }
+    	record (car, place, floor) {
+    		this.computer.show(car)
+            return {
+	            num: car.num,
+	            symbol: car.symbol,
+                inTime: new Date(),
+                place,
+                floor
+            }
+        }
+    }
+    // 电脑
+    class Computer {
+    	constructor () {
+    		this.symbols = {}
+        }
+        show (car) {
+            console.log(`车牌号为${car.num}的${car.symbol}驶入`)
+            if (this.symbols[car.symbol] !== undefined) {
+            	this.symbols[car.symbol] = this.symbols[car.symbol] + 1
+                document.getElementById(car.symbol).innerText = this.symbols[car.symbol]
+            } else {
+	            this.symbols[car.symbol] = 0
+	            earch.innerHTML = earch.innerHTML + `<li>${car.symbol}&nbsp;<span id="${car.symbol}">${0}</span>&nbsp;辆<li>`
+            }
+        }
+    }
+    // 屏幕
+    class Screen {
+	    reload (f, t) {
+	    	let dom = Array.prototype.slice.apply(document.querySelectorAll('#inform span'))
+    		if (t === '1') {
+                dom.map(el => {
+                	if (el.dataset.num === f + 1 + '') {
+                		el.innerText = --el.innerText
+                    }
+                })
+            } else {
+			    dom.map(el => {
+				    if (el.dataset.num === f + 1 + '') {
+					    el.innerText = ++el.innerText
+				    }
+			    })
+            }
+        }
+    }
+    // 停车场, 有层 摄像图 屏幕
+    class Park {
+    	constructor (floors) {
+    		this.floors = floors
+            this.camera = new Camera()
+            this.screen = new Screen()
+            this.carList = {}
+            this.fullFloor = []
+            this.wait = []
+        }
+        in (car) {
+    		let canChoice = []
+            let floors = this.floors
+	        floors.map((el, index) => {
+            	if (el.emptys > 0) {
+            		canChoice.push(index)
+                }
+            })
+            if (canChoice.length === 0) {
+    			if (Math.random() > 0.2) {
+    				console.warn('没有找到车位，撤了')
+				    return 'back'
+                } else {
+    				console.warn(`没有找到车位,继续等待`)
+    				this.in(car)
+                    return 'wait'
+                }
+            }
+            let fi = canChoice[Math.floor(Math.random() * canChoice.length)]
+            let canChoicePlaceIndex = []
+
+            let places = floors[fi].places
+            places.map((el, index) => {
+            	if (el.empty) {
+		            canChoicePlaceIndex.push(index)
+                }
+            })
+            let pi = Math.floor(Math.random() * canChoicePlaceIndex.length)
+            this.carList[car.num] = this.camera.record(car, pi, fi)
+            places[pi].in(floors[fi])
+	        this.screen.reload(fi, '1')
+	        let outs = Math.ceil(Math.random() * 100000 + 1000)
+	        setTimeout(() => {
+		        this.out(car)
+	        }, outs)
+        }
+	    out (car) {
+    		let place = this.floors[this.carList[car.num].floor].places[this.carList[car.num].place]
+    		place.out(this.floors[this.carList[car.num].floor])
+		    let price = (new Date() - this.carList[car.num].inTime)/1000 * place.price
+		    this.screen.reload(this.carList[car.num].floor)
+		    console.log(`车牌号为${car.num}驶出, 收费 ${price} 元`)
+		    priced.innerText = (Number(priced.innerText) + Number(price)).toFixed(2)
+		    delete this.carList[car.num]
+	    }
+    }
+    // 层 里面有停车位
+    class Floor {
+    	constructor (num, places) {
+    		this.num = num
+            this.places = places
+            this.emptys = places.length
+        }
+        inP () {
+            this.emptys--
+        }
+        outP () {
+	        this.emptys++
+        }
+    }
+    // 停车位
+    class Place {
+    	constructor () {
+    		this.empty = true
+        }
+        in (floor) {
+    		this.empty = false
+            floor.inP()
+        }
+        out (floor) {
+    		this.empty = true
+            floor.outP()
+        }
+    }
+    // 普通车位
+    class NormalPlace extends Place{
+    	constructor () {
+    		super()
+            this.color = 'blue'
+            this.price = 10
+        }
+    }
+    // 豪华车位
+    class SpecialPlace extends Place{
+    	constructor () {
+    		super()
+            this.color = 'yellow'
+            this.price = 60
+        }
+    }
+    class infrared {
+        constructor (car) {
+
+        }
+    }
+    // 汽车
+    class Car {
+    	constructor (type, num, symbol) {
+    		this.permit = type === '1'
+            this.num = num
+            this.symbol = symbol
+        }
+    }
+
+    // 以下部分全部为配合实现，请勿浪费时间
+    let Floors = []
+    for (let i = 0; i < 3; i++) {
+	    let places = []
+	    for (let j = 0; j < 100; j++) {
+		    places.push(new NormalPlace())
+	    }
+	    Floors.push(new Floor(i + 1, places))
+    }
+    let specialPlace = []
+    for (let i = 0; i < 20; i++) {
+    	specialPlace.push(new SpecialPlace())
+    }
+    Floors.push(new Floor(4, specialPlace))
+    let park = new Park(Floors)
+    var str = []
+    for(var i = 65; i < 91; i++){
+	    str.push(String.fromCharCode(i))
+    }
+    let test = {
+    	s: ['京', '冀', '黑', '蒙', '陕', '户', '津', '赣', '浣', '深', '藏', '疆' ],
+        n: str,
+        u: ['奔驰', '劳斯莱斯', '路虎', '大众', '保时泰', '保时捷', '兰博基尼', 'QQ', '丰田', '本田', '吉利', '宝马', '迈巴赫', '公交车', '火车', '坦克', '红旗', '捷豹', '法拉利', '宾利']
+    }
+    let enterTime = 200
+    setInterval( () => {
+	    let number = test.s[Math.ceil(Math.random() * test.s.length) - 1] +
+		    test.n[Math.ceil(Math.random() * test.n.length) - 1] +
+		    Math.floor(Math.random() * 100000)
+        let na = test.u[Math.ceil(Math.random() * test.u.length) - 1]
+	    let car = new Car('1', number, na)
+	    park.in(car)
+        enterTime = Math.floor(Math.random() * 50)
+    }, enterTime)
+</script>
+</body>
+</html>
