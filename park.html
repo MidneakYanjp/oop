@@ -136,7 +136,7 @@
             this.carList[car.num] = this.camera.record(car, pi, fi)
             places[pi].in(floors[fi])
 	        this.screen.reload(fi, '1')
-	        let outs = Math.ceil(Math.random() * 100000 + 1000)
+	        let outs = Math.ceil(Math.random() * 100000 + 5000)
 	        setTimeout(() => {
 		        this.out(car)
 	        }, outs)
@@ -233,7 +233,7 @@
         n: str,
         u: ['奔驰', '劳斯莱斯', '路虎', '大众', '保时泰', '保时捷', '兰博基尼', 'QQ', '丰田', '本田', '吉利', '宝马', '迈巴赫', '公交车', '火车', '坦克', '红旗', '捷豹', '法拉利', '宾利']
     }
-    let enterTime = 200
+    let enterTime = 100
     setInterval( () => {
 	    let number = test.s[Math.ceil(Math.random() * test.s.length) - 1] +
 		    test.n[Math.ceil(Math.random() * test.n.length) - 1] +
